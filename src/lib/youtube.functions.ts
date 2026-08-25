@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getApiKey, getChannelId, searchPassage } from "./youtube.server";
 
 export const searchBibleVideos = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) =>
+  .validator((input: unknown) =>
     z
       .object({
         queries: z
