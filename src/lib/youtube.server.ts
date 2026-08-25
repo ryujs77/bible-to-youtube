@@ -17,7 +17,6 @@ export function getChannelId(): string {
   );
 }
 
-const MAX_PAGES = 60; // 50 items per page
 
 type VideoItem = {
   videoId: string;
