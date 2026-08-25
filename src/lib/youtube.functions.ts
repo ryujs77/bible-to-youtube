@@ -3,6 +3,7 @@ import { z } from "zod";
 
 function getApiKey(): string | undefined {
   return (
+    process.env.GOOGLE_API_KEY ||
     process.env.YOUTUBE_API_KEY ||
     process.env.VITE_YOUTUBE_API_KEY ||
     (typeof import.meta !== "undefined" && import.meta.env ? (import.meta.env.VITE_YOUTUBE_API_KEY as string) : undefined)
