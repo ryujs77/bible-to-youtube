@@ -27,15 +27,22 @@ export type Passage = {
 
 export function extractPassages(text: string): Passage[] {
   const passages: Passage[] = [];
-  const readLineMatch = text.match(/읽을 말씀\s*[│|:]\s*(.+)/);
-  if (!readLineMatch) return passages;
 
-  const parts = readLineMatch[1].split(",").map((p) => p.trim());
-  for (const part of parts) {
-    const match = part.match(
-      /^([가-힣a-zA-Z]+)\s*(\d+)\s*(?:[-~–—]\s*(\d+))?\s*[장편]?\s*(?::?\s*([\d]+(?:\s*[-~–—]\s*\d+)?))?/,
-    );
-    if (!match) continue;
+  // "읽을 말씀" 이후 부분이 있으면 그 부분만, 없으면 전체 텍스트를 파싱
+  const readLineMatch = text.match(/읽을 말씀\s*[│|:]\s*(.+)/);
+  const parseText = readLineMatch ? readLineMatch[1] : text;
+
+  // 쉼표/줄바꿈으로 분리하거나, 연속된 성경 구절 패턴을 전체에서 추출
+  const bookKeys = Object.keys(BIBLE_BOOKS)
+    .sort((a, b) => b.length - a.length) // 긴 약자 먼저 (삼상 > 삼)
+    .join("|");
+  const globalRegex = new RegExp(
+    `(${bookKeys})\\s*(\\d+)\\s*(?:[-~–—]\\s*(\\d+))?\\s*[장편]?(?::?\\s*([\\d]+(?:\\s*[-~–—]\\s*\\d+)?))?`,
+    "g",
+  );
+
+  let match: RegExpExecArray | null;
+  while ((match = globalRegex.exec(parseText)) !== null) {
     const bookAbbr = match[1];
     const startChapter = parseInt(match[2], 10);
     const endChapter = match[3] ? parseInt(match[3], 10) : startChapter;
@@ -45,7 +52,6 @@ export function extractPassages(text: string): Passage[] {
     const unit = bookFull === "시편" ? "편" : "장";
     for (let c = startChapter; c <= endChapter && c - startChapter < 50; c++) {
       const chapter = String(c);
-      // 절 범위는 단일 장일 때만 의미가 있음
       const v = startChapter === endChapter ? verses : "";
       let display = `${bookFull} ${chapter}${unit}`;
       if (v) display += ` ${v}절`;
@@ -59,6 +65,16 @@ export function extractPassages(text: string): Passage[] {
       });
     }
   }
-  return passages.slice(0, 20);
+
+  // 중복 제거 (같은 book+chapter 조합)
+  const seen = new Set<string>();
+  return passages
+    .filter((p) => {
+      const key = `${p.book}:${p.chapter}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 20);
 }
 
